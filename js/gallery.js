@@ -1,21 +1,20 @@
 import images from "../gallery-items.js";
 
-const imageList = document.querySelector(".js-gallery");
-const lightboxRef = document.querySelector(".js-lightbox");
-const closeModalBtn = document.querySelector(
-  "button[data-action='close-lightbox']"
-);
-const lightboxContentImgRef = document.querySelector(".lightbox__image");
-const overlay = document.querySelector(".lightbox__overlay");
-const itemsMarkup = createGalleryItemsMarkup(images);
+const imageList = document.querySelector(".js-gallery"),
+  lightboxRef = document.querySelector(".js-lightbox"),
+  closeModalBtn = document.querySelector(
+    "button[data-action='close-lightbox']"
+  ),
+  lightboxContentImgRef = document.querySelector(".lightbox__image"),
+  overlay = document.querySelector(".lightbox__overlay"),
+  itemsMarkup = createGalleryItemsMarkup(images);
 
-// рендеринг разметки в документ
+let currentImg;
 imageList.insertAdjacentHTML("beforeend", itemsMarkup);
 
-// слушатели
 imageList.addEventListener("click", onImgClick);
 closeModalBtn.addEventListener("click", onCloseModal);
-overlay.addEventListener("click", onBackdropClick);
+overlay.addEventListener("click", () => onCloseModal());
 
 // функция создания разметки
 function createGalleryItemsMarkup(items) {
@@ -23,19 +22,19 @@ function createGalleryItemsMarkup(items) {
     .map(({ preview, original, description }) => {
       return `
     <li class="gallery__item">
-  <a
+    <a
     class="gallery__link"
     href="${original}"
   >
     <img
-      class="gallery__image"
+    class="gallery__image"
       src="${preview}"
       data-source="${original}"
       alt="${description}"
-    />
-  </a>
-</li>
-    `;
+      />
+      </a>
+      </li>
+      `;
     })
     .join("");
 }
@@ -46,25 +45,25 @@ function onImgClick(e) {
     return;
   }
 
-  const url = e.target.dataset.source;
+  currentImg = e.target;
 
   e.preventDefault();
+  addLightboxContent(currentImg);
   onOpenModal();
-  addLightboxContent(url);
 }
 
 // функиция открытия модалки
 function onOpenModal() {
-  window.addEventListener("keydown", onEscKeyPress);
-  window.addEventListener("keydown", onEnterKeyPress);
   lightboxRef.classList.add("is-open");
+  document.addEventListener("keydown", onEscKeyPress);
+  document.addEventListener("keyup", imageArrowsFlipping);
 }
 
 // функция закрытия модалки
 function onCloseModal() {
-  window.removeEventListener("keydown", onEscKeyPress);
-  window.removeEventListener("keydown", onEnterKeyPress);
   lightboxRef.classList.remove("is-open");
+  document.removeEventListener("keydown", onEscKeyPress);
+  document.removeEventListener("keyup", imageArrowsFlipping);
 }
 
 // функция добавления url изображения в модалку
@@ -72,12 +71,8 @@ function addLightboxContent(url) {
   if (lightboxContentImgRef.src !== "") {
     lightboxContentImgRef.src = "";
   }
-  lightboxContentImgRef.src = url;
-}
-
-// функция закрытия по оверлею
-function onBackdropClick() {
-  onCloseModal();
+  lightboxContentImgRef.src = url.dataset.source;
+  lightboxContentImgRef.alt = url.alt;
 }
 
 // функция закрытия по ESC
@@ -88,10 +83,23 @@ function onEscKeyPress(e) {
   }
 }
 
-// открытие модалки по Enter
-function onEnterKeyPress(e) {
-  const ENTER_CODE = "Enter";
-  if (e.code === ENTER_CODE) {
-    onOpenModal();
+// функция перелистывания стрелками
+function imageArrowsFlipping(e) {
+  const parrent = currentImg.closest("li");
+
+  if (e.code === "ArrowRight") {
+    onNextKeyPress(parrent);
+  } else if (e.code === "ArrowLeft") {
+    onPrevKeyPress(parrent);
   }
+}
+
+function onNextKeyPress(parrent) {
+  currentImg = parrent.nextElementSibling.querySelector("img");
+  addLightboxContent(currentImg);
+}
+
+function onPrevKeyPress(parrent) {
+  currentImg = parrent.previousElementSibling.querySelector("img");
+  addLightboxContent(currentImg);
 }
